@@ -1,0 +1,22 @@
+La base de données
+
+============LES TABLES==================
+4 tables
+=> Un user peut ajouter plusieurs plage
+=> Une plage peut être ajouter par un user
+
+=> Une plage est dans une ville
+=> Une ville contient plusieurs plages
+
+=> Une ville est dans un pays
+=> Un pays contient plusieurs villes
+
+===========LES COLONNES=================
+Pays    Nom
+ville   Nom
+plage   Nom
+        Description
+        Sable
+
+
+
