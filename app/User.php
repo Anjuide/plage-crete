@@ -36,4 +36,9 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
+
+    // Le user a plusieurs beach
+    public function beaches(){
+        return $this->hasMany('App\Beach');
+    }
 }

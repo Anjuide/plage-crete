@@ -34,3 +34,7 @@ Route::resource('plages', 'BeachesController');
 // Route::get('/plages-cote-d-ivoire', function () {
 //     return view('ivorycoast');
 // });
+
+Auth::routes();
+
+Route::get('/home', 'HomeController@index')->name('home');

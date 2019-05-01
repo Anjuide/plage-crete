@@ -4,9 +4,21 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Beach;
+use Illuminate\Support\Facades\Storage;
 
 class BeachesController extends Controller
 {
+    /**
+     * Create a new controller instance.
+     *
+     * @return void
+     */
+    public function __construct()
+    {
+        // Bloquer l'acces sauf pour les vues index et show
+        $this->middleware('auth', ['except' => ['index', 'show']]);
+    }
+
     /**
      * Display a listing of the resource.
      *
@@ -49,18 +61,35 @@ class BeachesController extends Controller
         $this->validate($request,[
             'titre' => 'required',
             'description' => 'required',
-            'image' => 'required',
+            'picture' => 'image|nullable|max:1999',
             'access' => 'required',
             'installations' => 'required'
         ]);
+        // Si l'utilisateur a envoyé une image
+        if ($request->hasFile('picture')) {
+            // Récupérer le nom du fichier avec l'extention
+            $fileNameWithExtension = $request->file('picture')->getClientOriginalName();
+            // Récupérer le nom du fichier
+            $fileName = pathinfo($fileNameWithExtension,PATHINFO_FILENAME);
+            // Récupérer l'extension
+            $extension = $request->file('picture')->getClientOriginalExtension();
+            // Nom de fichier à enregistrer
+            $fileNameToStore = $fileName.'_'.time().'.'.$extension;
+            // Sauvegarder le fichier
+            $path = $request->file('picture')->storeAs('public/pictures',$fileNameToStore);
+        }else{
+            // Enregistrez une image par défaut
+            $fileNameToStore = 'noimage.png';
+        }
         // On créer un objet 
         $beach = new Beach;
         // On affecte des valeurs à l'objet 
         $beach->title = $request->input('titre');
         $beach->description = $request->input( 'description');
-        $beach->picture = $request->input('image');
+        $beach->picture = $fileNameToStore;
         $beach->access = $request->input('access');
         $beach->installations = $request->input('installations');
+        $beach->user_id = auth()->user()->id;
         // On sauvegarde l'objet
         $beach->save();
         // On retourne à la page des plages et on envoie des variable
@@ -90,6 +119,10 @@ class BeachesController extends Controller
     {
         $title = "Modifier la plage";
         $beach = Beach::find($id);
+        // Vérification de user
+        if(auth()->user()->id !== $beach->user_id){
+            return redirect('/plages')->with('error', 'Page interdite');
+        }
         return view('plages/modifier-une-plage', compact('title', 'beach'));
     }
 
@@ -106,16 +139,31 @@ class BeachesController extends Controller
         $this->validate($request, [
             'titre' => 'required',
             'description' => 'required',
-            'image' => 'required',
+            'picture' => 'image|nullable|max:1999',
             'access' => 'required',
             'installations' => 'required'
         ]);
+        // Si l'utilisateur a envoyé une image
+        if ($request->hasFile('picture')) {
+            // Récupérer le nom du fichier avec l'extention
+            $fileNameWithExtension = $request->file('picture')->getClientOriginalName();
+            // Récupérer le nom du fichier
+            $fileName = pathinfo($fileNameWithExtension, PATHINFO_FILENAME);
+            // Récupérer l'extension
+            $extension = $request->file('picture')->getClientOriginalExtension();
+            // Nom de fichier à enregistrer
+            $fileNameToStore = $fileName . '_' . time() . '.' . $extension;
+            // Sauvegarder le fichier
+            $path = $request->file('picture')->storeAs('public/pictures', $fileNameToStore);
+        }
         // On récupère l'objet 
         $beach = Beach::find($id);
         // On reaffecte des valeurs à l'objet 
         $beach->title = $request->input('titre');
         $beach->description = $request->input('description');
-        $beach->picture = $request->input('image');
+        if ($request->hasFile('picture')) {
+            $beach->picture = $fileNameToStore;
+        }
         $beach->access = $request->input('access');
         $beach->installations = $request->input('installations');
         // On sauvegarde l'objet
@@ -131,9 +179,18 @@ class BeachesController extends Controller
      * @return \Illuminate\Http\Response
      */
     public function destroy($id)
-    {
+    { 
         //
         $beach = Beach::find($id);
+        // Vérification de user
+        if (auth()->user()->id !== $beach->user_id) {
+            return redirect('/plages')->with('error', 'Page interdite');
+        }
+        // Si l'image n'est pas l'image par défaut
+        if ($beach->picture != 'noimage.png') {
+            // Supprime du serveur
+            Storage::delete('public/pictures/'.$beach->picture);
+        }
         $beach->delete();
         return redirect('/plages')->with('success', 'Plage supprimée');
     }
